@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Browser" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#111827</item>
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:navigationBarColor">#00000000</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <style name="Theme.Browser.Home" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#111827</item>
+        <item name="android:windowFullscreen">false</item>
+    </style>
+</resources>
