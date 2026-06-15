@@ -23,6 +23,8 @@ public class HomeActivity extends AppCompatActivity {
         container = findViewById(R.id.sites_container);
         statusText = findViewById(R.id.status_text);
 
+        findViewById(R.id.refresh_button).setOnClickListener(v -> loadData());
+
         loadData();
     }
 
@@ -41,7 +43,11 @@ public class HomeActivity extends AppCompatActivity {
             if (doneCount[0] == 2) {
                 statusText.setVisibility(View.GONE);
                 if (allowlistResult[0] != null && !allowlistResult[0].isEmpty()) {
-                    populateSection("Sites", allowlistResult[0], false);
+                    List<String> visible = new java.util.ArrayList<>();
+                    for (String h : allowlistResult[0]) {
+                        if (!Allowlist.isHidden(h)) visible.add(h);
+                    }
+                    if (!visible.isEmpty()) populateSection("Sites", visible, false);
                 } else {
                     statusText.setText("Failed to load allowlist. Check your connection.");
                     statusText.setVisibility(View.VISIBLE);

@@ -8,9 +8,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -46,6 +48,7 @@ public class BrowserActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         FullScreen.enable(getWindow());
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
         setContentView(R.layout.activity_browser);
         tabBar = findViewById(R.id.tab_bar);
@@ -72,6 +75,13 @@ public class BrowserActivity extends AppCompatActivity {
 
         configureSettings(tab.webView);
         CookieManager.getInstance().setAcceptThirdPartyCookies(tab.webView, true);
+
+        tab.webView.setFocusable(true);
+        tab.webView.setFocusableInTouchMode(true);
+        tab.webView.setOnTouchListener((v, event) -> {
+            if (!v.hasFocus()) v.requestFocus();
+            return false;
+        });
 
         final int tabIndex = tabs.size();
         tabs.add(tab);
@@ -137,6 +147,22 @@ public class BrowserActivity extends AppCompatActivity {
                 if (Allowlist.isAllowedNavigation(url)) return false;
                 if (Allowlist.isAllowedResourceHost(host)) return false;
                 return true;
+            }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (request.isForMainFrame()) {
+                    return super.shouldInterceptRequest(view, request);
+                }
+                // Block iframe navigations to non-whitelisted hosts
+                String type = request.getRequestHeaders().get("Sec-Fetch-Dest");
+                if ("iframe".equals(type)) {
+                    String host = request.getUrl().getHost();
+                    if (!Allowlist.isAllowedResourceHost(host)) {
+                        return new WebResourceResponse("text/plain", "UTF-8", null);
+                    }
+                }
+                return super.shouldInterceptRequest(view, request);
             }
 
             @Override
@@ -237,16 +263,17 @@ public class BrowserActivity extends AppCompatActivity {
         if (index < 0 || index >= tabs.size()) return;
 
         Tab tab = tabs.get(index);
-        tab.webView.destroy();
         webContainer.removeView(tab.webView);
         tabBar.removeView(tab.chip);
         tabs.remove(index);
 
         if (tabs.isEmpty()) {
+            tab.webView.destroy();
             finish();
             return;
         }
 
+        tab.webView.destroy();
         int nextIndex = Math.min(index, tabs.size() - 1);
         switchTab(nextIndex);
     }
@@ -310,7 +337,6 @@ public class BrowserActivity extends AppCompatActivity {
         s.setGeolocationEnabled(false);
         s.setSupportMultipleWindows(true);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
-        s.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
     }
 
     private int dpToPx(int dp) {

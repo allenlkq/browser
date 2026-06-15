@@ -17,6 +17,7 @@ public class Allowlist {
 
     // Populated at runtime — bare hostnames, e.g. "aistudio.google.com"
     private static final CopyOnWriteArrayList<String> ALLOWED_HOSTS = new CopyOnWriteArrayList<>();
+    private static final CopyOnWriteArrayList<String> HIDDEN_HOSTS = new CopyOnWriteArrayList<>();
 
     // Static supporting domains always permitted as sub-resources
     private static final List<String> STATIC_RESOURCE_HOSTS = Arrays.asList(
@@ -38,6 +39,7 @@ public class Allowlist {
     public static void fetch(android.os.Handler mainHandler, FetchCallback callback) {
         new Thread(() -> {
             List<String> hosts = new ArrayList<>();
+            List<String> hiddenHosts = new ArrayList<>();
             Exception fetchError = null;
             try {
                 HttpURLConnection conn = (HttpURLConnection) new URL(ALLOWLIST_URL).openConnection();
@@ -50,10 +52,15 @@ public class Allowlist {
                             new InputStreamReader(conn.getInputStream()))) {
                         String line;
                         while ((line = reader.readLine()) != null) {
+                            line = line.trim();
+                            if (line.isEmpty() || line.startsWith("#")) continue;
+                            boolean hidden = line.endsWith(" hide");
+                            if (hidden) line = line.substring(0, line.length() - 5).trim();
                             // Strip scheme if someone accidentally includes it
-                            line = line.trim().replaceAll("^https?://", "").replaceAll("/.*$", "");
-                            if (!line.isEmpty() && !line.startsWith("#")) {
+                            line = line.replaceAll("^https?://", "").replaceAll("/.*$", "");
+                            if (!line.isEmpty()) {
                                 hosts.add(line);
+                                if (hidden) hiddenHosts.add(line);
                             }
                         }
                     }
@@ -68,6 +75,8 @@ public class Allowlist {
             if (!hosts.isEmpty()) {
                 ALLOWED_HOSTS.clear();
                 ALLOWED_HOSTS.addAll(hosts);
+                HIDDEN_HOSTS.clear();
+                HIDDEN_HOSTS.addAll(hiddenHosts);
             }
 
             final List<String> result = Collections.unmodifiableList(new ArrayList<>(ALLOWED_HOSTS));
@@ -78,6 +87,10 @@ public class Allowlist {
 
     public static List<String> getAllowedHosts() {
         return Collections.unmodifiableList(new ArrayList<>(ALLOWED_HOSTS));
+    }
+
+    public static boolean isHidden(String host) {
+        return HIDDEN_HOSTS.contains(host);
     }
 
     /** True if the URL's host matches an allowlisted host or its subdomain. */
