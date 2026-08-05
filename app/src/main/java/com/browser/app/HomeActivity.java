@@ -7,12 +7,14 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
     private LinearLayout container;
+    private LinearLayout myBookmarksContainer;
     private TextView statusText;
 
     @Override
@@ -21,6 +23,7 @@ public class HomeActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_home);
         container = findViewById(R.id.sites_container);
+        myBookmarksContainer = findViewById(R.id.my_bookmarks_container);
         statusText = findViewById(R.id.status_text);
 
         findViewById(R.id.refresh_button).setOnClickListener(v -> loadData());
@@ -32,6 +35,7 @@ public class HomeActivity extends AppCompatActivity {
         statusText.setText("Loading…");
         statusText.setVisibility(View.VISIBLE);
         container.removeAllViews();
+        myBookmarksContainer.removeAllViews();
 
         Handler mainHandler = new Handler(Looper.getMainLooper());
         final List<String>[] allowlistResult = new List[1];
@@ -47,13 +51,17 @@ public class HomeActivity extends AppCompatActivity {
                     for (String h : allowlistResult[0]) {
                         if (!Allowlist.isHidden(h)) visible.add(h);
                     }
-                    if (!visible.isEmpty()) populateSection("Sites", visible, false);
+                    if (!visible.isEmpty()) populateSection(container, "Sites", visible, false, false);
                 } else {
                     statusText.setText("Failed to load allowlist. Check your connection.");
                     statusText.setVisibility(View.VISIBLE);
                 }
                 if (bookmarksResult[0] != null && !bookmarksResult[0].isEmpty()) {
-                    populateSection("Bookmarks", bookmarksResult[0], true);
+                    populateSection(container, "Bookmarks", bookmarksResult[0], true, false);
+                }
+                List<String> localBookmarks = LocalBookmarks.get(this);
+                if (!localBookmarks.isEmpty()) {
+                    populateSection(myBookmarksContainer, "My Bookmarks", localBookmarks, true, true);
                 }
             }
         };
@@ -69,14 +77,14 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    private void populateSection(String title, List<String> items, boolean fullUrl) {
+    private void populateSection(LinearLayout target, String title, List<String> items, boolean fullUrl, boolean deletable) {
         TextView header = new TextView(this);
         header.setText(title);
         header.setTextSize(13f);
         header.setTextColor(0xFF9CA3AF);
         header.setAllCaps(true);
         header.setPadding(0, fullUrl ? 48 : 0, 0, 16);
-        container.addView(header);
+        target.addView(header);
 
         for (String item : items) {
             TextView tv = new TextView(this);
@@ -96,14 +104,44 @@ public class HomeActivity extends AppCompatActivity {
             params.setMargins(0, 0, 0, 24);
             tv.setLayoutParams(params);
 
-            final String targetUrl = fullUrl ? item : "https://" + item + "/";
+            final String targetUrl = fullUrl ? item : (item.startsWith("192.168.") ? "http://" : "https://") + item + "/";
             tv.setOnClickListener(v -> {
                 Intent intent = new Intent(HomeActivity.this, BrowserActivity.class);
                 intent.putExtra(BrowserActivity.EXTRA_URL, targetUrl);
                 startActivity(intent);
             });
 
-            container.addView(tv);
+            if (deletable) {
+                final String bookmarkUrl = item;
+                tv.setOnLongClickListener(v -> {
+                    final android.widget.EditText input = new android.widget.EditText(HomeActivity.this);
+                    input.setText(bookmarkUrl);
+                    input.setSingleLine(true);
+                    new androidx.appcompat.app.AlertDialog.Builder(HomeActivity.this)
+                        .setTitle("Edit bookmark")
+                        .setView(input)
+                        .setPositiveButton("Save", (d, w) -> {
+                            String newUrl = input.getText().toString().trim();
+                            if (!newUrl.isEmpty() && !newUrl.equals(bookmarkUrl)) {
+                                boolean ok = LocalBookmarks.update(HomeActivity.this, bookmarkUrl, newUrl);
+                                if (!ok) {
+                                    Toast.makeText(HomeActivity.this, "Bookmark already exists",
+                                        Toast.LENGTH_SHORT).show();
+                                }
+                                loadData();
+                            }
+                        })
+                        .setNeutralButton("Delete", (d, w) -> {
+                            LocalBookmarks.remove(HomeActivity.this, bookmarkUrl);
+                            loadData();
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+                    return true;
+                });
+            }
+
+            target.addView(tv);
         }
     }
 }

@@ -28,20 +28,53 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <TextView
-            android:id="@+id/home_button"
+        <LinearLayout
             android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_margin="24dp"
-            android:text="⌂"
-            android:textSize="22sp"
-            android:textColor="#FFFFFF"
-            android:gravity="center"
-            android:background="#CC1F2937"
-            android:clickable="true"
-            android:focusable="true"
-            android:elevation="4dp" />
+            android:orientation="vertical"
+            android:elevation="4dp">
+
+            <TextView
+                android:id="@+id/bookmark_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:text="★"
+                android:textSize="22sp"
+                android:textColor="#FFFFFF"
+                android:gravity="center"
+                android:background="#CC1F2937"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/reload_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:text="↻"
+                android:textSize="22sp"
+                android:textColor="#FFFFFF"
+                android:gravity="center"
+                android:background="#CC1F2937"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/home_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:text="⌂"
+                android:textSize="22sp"
+                android:textColor="#FFFFFF"
+                android:gravity="center"
+                android:background="#CC1F2937"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
 
     </FrameLayout>
 

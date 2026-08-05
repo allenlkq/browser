@@ -20,6 +20,7 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.browser.customtabs.CustomTabsIntent;
 import java.util.ArrayList;
@@ -58,6 +59,25 @@ public class BrowserActivity extends AppCompatActivity {
         CookieManager.getInstance().setAcceptCookie(true);
 
         findViewById(R.id.home_button).setOnClickListener(v -> finish());
+        findViewById(R.id.reload_button).setOnClickListener(v -> {
+            if (activeTabIndex >= 0 && activeTabIndex < tabs.size()) {
+                WebView current = tabs.get(activeTabIndex).webView;
+                current.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+                current.reload();
+                current.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+            }
+        });
+
+        findViewById(R.id.bookmark_button).setOnClickListener(v -> {
+            if (activeTabIndex >= 0 && activeTabIndex < tabs.size()) {
+                String current = tabs.get(activeTabIndex).webView.getUrl();
+                if (current != null && !current.isEmpty()) {
+                    boolean added = LocalBookmarks.add(this, current);
+                    Toast.makeText(this, added ? "Bookmarked" : "Already bookmarked",
+                        Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
         String url = getIntent().getStringExtra(EXTRA_URL);
         if (url != null) {
@@ -144,6 +164,7 @@ public class BrowserActivity extends AppCompatActivity {
                         // No browser available — load in WebView
                     }
                 }
+                if (host != null && host.startsWith("192.168.")) return false;
                 if (Allowlist.isAllowedNavigation(url)) return false;
                 if (Allowlist.isAllowedResourceHost(host)) return false;
                 return true;
@@ -331,7 +352,7 @@ public class BrowserActivity extends AppCompatActivity {
         s.setDatabaseEnabled(true);
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
-        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setAllowFileAccess(false);
         s.setGeolocationEnabled(false);
